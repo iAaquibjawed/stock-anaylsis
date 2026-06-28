@@ -1,0 +1,4 @@
+run_id,timestamp,strategy,universe,n_symbols,period,data_kind,sharpe,cagr,max_drawdown,turnover,validation,config_hash,report
+001,2026-06-28T20:12:02,momentum_v1,explicit,12,2019-01-02..today,synthetic,2.438,0.3464,-0.0738,10.039,PASS,57124600bd6a17f6,momentum_v1_20260628_201202.html
+002,2026-06-28T20:12:06,momentum_v2,explicit,12,2019-01-02..today,synthetic,2.199,0.2458,-0.0592,6.621,PASS,e1f61713bff5b1ae,momentum_v2_20260628_201206.html
+003,2026-06-28T20:12:10,quality,explicit,12,2019-01-02..today,synthetic,1.423,0.1654,-0.0833,11.978,PASS,c01e678f90bb67e7,quality_20260628_201210.html

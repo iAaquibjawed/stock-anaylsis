@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Engine-generated data (regenerated from source; not source-of-truth)
+cache/
+universe/
+
+# Generated reports & ledger — uncomment to keep experiments out of git
+# reports/*.html
+# reports/experiments.csv
+# reports/experiments.jsonl
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
