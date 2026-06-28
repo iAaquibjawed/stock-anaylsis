@@ -39,7 +39,7 @@ import data_engine as de
 FEATURE_DIR = de.ROOT / "cache" / "features"
 FEATURE_DIR.mkdir(parents=True, exist_ok=True)
 
-FEATURE_SCHEMA_VERSION = 2  # v2: + metadata registry, quality features
+FEATURE_SCHEMA_VERSION = 3  # v3: + classic 12-1 momentum (own group, 0 default weight)
 
 # ---------------------------------------------------------------------------
 # Feature metadata registry
@@ -55,6 +55,9 @@ FEATURE_META: dict[str, dict] = {
     "ret_60d":       {"group": "momentum",   "direction": "higher_better", "normalize": "rank"},
     "ret_120d":      {"group": "momentum",   "direction": "higher_better", "normalize": "rank"},
     "consec_up":     {"group": "momentum",   "direction": "higher_better", "normalize": "rank"},
+    # classic academic 12-1 momentum — own group so it's OPT-IN (zero weight in the
+    # default config; only strategies that name "classic_momentum" use it).
+    "mom_12_1":      {"group": "classic_momentum", "direction": "higher_better", "normalize": "rank"},
     # trend
     "ema_dist_50":   {"group": "trend",      "direction": "higher_better", "normalize": "rank"},
     "golden":        {"group": "trend",      "direction": "higher_better", "normalize": "none"},
@@ -171,6 +174,11 @@ def compute_features(df: pd.DataFrame) -> pd.DataFrame:
     # Returns / momentum (trailing, so causal)
     for n in (1, 5, 20, 60, 120):
         out[f"ret_{n}d"] = px.pct_change(n)
+
+    # Classic 12-1 momentum: return from ~12 months ago to ~1 month ago.
+    # Skipping the most recent ~21 trading days avoids the well-known short-term
+    # reversal. Uses only past data (both legs are shifted) -> causal.
+    out["mom_12_1"] = px.shift(21) / px.shift(252) - 1.0
 
     # Trend
     out["ema_20"] = _ema(px, 20)

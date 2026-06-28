@@ -25,6 +25,9 @@ quant_engine/
 │   ├── runner.py           # ✅ end-to-end orchestrator (universe -> report)
 │   ├── experiments.py      # ✅ experiment ledger + index.html (compare runs)
 │   └── baselines.py        # ✅ naive-strategy comparison (beat these first)
+├── research/               # configurations & scripts (not engine code)
+│   ├── strategies.py       # preset StrategyConfigs incl. CLASSIC_MOMENTUM
+│   └── verify_pipeline.py  # run the canonical strategy on real data to verify
 ├── reports/                # generated reports, experiments.csv/jsonl, index.html
 ├── cache/                  # auto-created: prices, features, actions, meta (Parquet/JSON)
 └── universe/               # auto-created: point-in-time constituent snapshots
@@ -250,6 +253,21 @@ print(out["report"])
 **Phase 3 — Measure.** Read the report: CAGR, Sharpe, max DD, win rate, turnover,
 alpha/beta/IR vs benchmark, the validation verdict — and the baseline table.
 Failing here is normal and informative.
+
+**Phase 3.5 — Verify against a known result.** Before researching novel ideas,
+run the canonical strategy and check its *shape* against the literature:
+
+```bash
+cd research && python verify_pipeline.py     # classic 12-1 momentum, top 20, monthly
+```
+
+Classic 12‑1 momentum (`feature: mom_12_1`, feature schema v3) lives in its own
+`classic_momentum` group with **zero weight in the default config**, so it's
+opt-in and changes no existing strategy. Expect a positive long-run premium with
+deep "momentum crash" drawdowns. Results wildly different from that profile mean
+*audit the data/implementation first* — don't start researching on a broken base.
+You won't match published returns exactly (different universe, costs, impl), and
+that's fine; you're checking qualitative behavior, not precision.
 
 **Phase 4 — Research (90% of the work).** Only now ask which factors help or hurt,
 whether momentum/quality/mean-reversion work, and whether weights should change —
