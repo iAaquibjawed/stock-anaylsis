@@ -53,15 +53,27 @@ QUALITY_TREND = StrategyConfig(
     top_n=20,
 )
 
-MEAN_REVERSION = StrategyConfig(
-    name="mean_reversion",
-    # oscillator group flips usefully here if you invert RSI in a custom config;
-    # as a starting point this leans on short-term pullbacks within an uptrend.
+# WARNING — NOT a genuine contrarian strategy yet, so NOT verification-ready.
+# The `oscillator` group is registered higher_better (high RSI scores well), so as
+# written this tilts toward strength — a momentum flavor, not mean reversion. If it
+# performs poorly you won't know which you tested. To make it truly contrarian you
+# must invert the oscillator signal (a scorer option that doesn't exist today).
+# Kept only as a placeholder for that future change; do not use it to verify
+# mean-reversion behavior.
+MEAN_REVERSION_PLACEHOLDER = StrategyConfig(
+    name="mean_reversion_PLACEHOLDER_not_contrarian",
     group_weights={"oscillator": 0.5, "trend": 0.3, "liquidity": 0.2},
     top_n=20,
 )
 
-PRESETS = {
-    s.name: s for s in
-    [CLASSIC_MOMENTUM, BLENDED_MOMENTUM, LOW_VOLATILITY, QUALITY_TREND, MEAN_REVERSION]
+# Strategies whose behavior is well-defined and safe to use for platform
+# verification on real data (compare their *shape* to the literature).
+VERIFICATION_READY = {
+    s.name: s for s in [CLASSIC_MOMENTUM, BLENDED_MOMENTUM, LOW_VOLATILITY, QUALITY_TREND]
 }
+
+# Needs a semantic change before it expresses what its name claims.
+NEEDS_WORK = {MEAN_REVERSION_PLACEHOLDER.name: MEAN_REVERSION_PLACEHOLDER}
+
+# All presets (verification-ready + work-in-progress). Note which is which.
+PRESETS = {**VERIFICATION_READY, **NEEDS_WORK}
