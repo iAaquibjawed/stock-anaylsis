@@ -9,6 +9,9 @@ venv/
 cache/
 universe/
 
+# Run logs from run.sh
+logs/
+
 # Generated reports & ledger — uncomment to keep experiments out of git
 # reports/*.html
 # reports/experiments.csv
