@@ -219,6 +219,27 @@ complexity ahead of need:
   relative strength, and beta-vs-Nifty all need an index series that isn't wired.
   Fundamentals need a point-in-time source. Hooks are ready; data isn't.
 
+## Protecting V1 — research vs platform changes
+
+V1 is frozen as a stable instrument (git tag `v1.0`). Keep experiment history
+comparable by separating two kinds of work:
+
+- **`research` branch** — new hypotheses, new strategy configs, journal entries,
+  generated reports. This is where day-to-day work happens. It does **not** change
+  engine behavior.
+- **`main` (platform)** — bug fixes, or new capabilities justified by evidence
+  from *multiple* experiments. Tag a new version (`v1.1`, …) when it changes.
+
+When an experiment fails, triage before touching code:
+
+1. **Strategy failure?** → journal it, move on. No code change.
+2. **Data issue?** → fix the data / universe, note it. No engine change.
+3. **Platform bug?** → *only this* warrants a `main` commit.
+
+If you change the platform while testing ideas, you can't tell whether a new
+result came from a better hypothesis or a different implementation. Keep the
+instrument fixed; vary the experiments.
+
 ## First real-data run — a phased runbook
 
 Don't jump to "is it accurate?". Answer these in order; treat Phases 1–2 as
