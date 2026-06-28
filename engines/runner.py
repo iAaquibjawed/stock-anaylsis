@@ -47,6 +47,7 @@ import validation_engine as ve
 import benchmark as bm
 import report as rp
 import experiments as ex
+import baselines as bl
 from execution_engine import ExecConfig
 
 
@@ -66,6 +67,8 @@ class RunConfig:
     starting_cash: float = 1_000_000.0
     fetch: bool = True                     # False -> use existing cache only
     do_validation: bool = True
+    do_baselines: bool = True              # compare vs naive strategies (recommended)
+    n_random: int = 100                    # random-portfolio simulations
     out_dir: str = "../reports"
 
 
@@ -116,13 +119,28 @@ def run(cfg: RunConfig) -> dict:
         except Exception as e:  # noqa: BLE001
             bench_metrics = {"error": f"{type(e).__name__}: {e}"}
 
-    # 5) validation
+    # 5) baselines (naive strategies, after costs — run BEFORE trusting a PASS)
+    baselines = None
+    if cfg.do_baselines:
+        bench_close = None
+        if cfg.benchmark and cfg.benchmark in cached:
+            try:
+                bench_close = de.get(cfg.benchmark)["AdjClose"]
+            except Exception:  # noqa: BLE001
+                bench_close = None
+        baselines = bl.compare_baselines(
+            symbols, cfg.start, cfg.end, res.equity, bench_close=bench_close,
+            exec_cfg=cfg.exec_cfg, n_momentum=min(20, cfg.strat.top_n * 4),
+            n_random=cfg.n_random,
+        )
+
+    # 6) validation
     val = None
     if cfg.do_validation:
         val = ve.validate(symbols, cfg.start, cfg.end, cfg.strat,
                           cfg.exec_cfg, cfg.vcfg)
 
-    # 6) report
+    # 7) report
     out_dir = Path(cfg.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -133,9 +151,9 @@ def run(cfg: RunConfig) -> dict:
                    "n_symbols": len(symbols)})
     rp.generate_report(res, str(report_path), title=cfg.name, validation=val,
                        bench_metrics=bench_metrics, data_kind=data_kind,
-                       provenance=provenance)
+                       provenance=provenance, baselines=baselines)
 
-    # 7) register in the experiment ledger (auto-rebuilds reports/index.html)
+    # 8) register in the experiment ledger (auto-rebuilds reports/index.html)
     universe_label = (cfg.universe_csv or cfg.universe_date or "explicit") if not cfg.symbols else "explicit"
     ledger_row = ex.register(
         strategy=cfg.name,

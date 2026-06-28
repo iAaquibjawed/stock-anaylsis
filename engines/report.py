@@ -157,6 +157,30 @@ _CSS = """
 """
 
 
+def _baselines_table(baselines) -> str:
+    if baselines is None or len(baselines) == 0:
+        return ""
+    df = baselines
+    head = "".join(f"<th>{_html.escape(str(c))}</th>" for c in df.columns)
+    body = ""
+    for _, r in df.iterrows():
+        is_strat = str(r.iloc[0]).strip().startswith("**")
+        style = " style='background:#dff7df;font-weight:600'" if is_strat else ""
+        cells = "".join(f"<td>{_html.escape(str(v))}</td>" for v in r.values)
+        body += f"<tr{style}>{cells}</tr>"
+    pct = df.attrs.get("strategy_percentile", {})
+    note = ""
+    if pct:
+        note = (f"<p class='note'>Strategy vs {pct.get('n_random')} random portfolios — "
+                f"CAGR percentile: <b>{pct.get('vs_random_CAGR_pct')}</b>, "
+                f"Sharpe percentile: <b>{pct.get('vs_random_Sharpe_pct')}</b> "
+                "(100 = beats every random portfolio).</p>")
+    return (f"<h2>Baseline comparison (after costs)</h2>"
+            f"<table><tr>{head}</tr>{body}</table>{note}"
+            "<p class='note'>If the strategy can't beat these simple baselines after "
+            "costs, the strategy needs work — not the framework.</p>")
+
+
 def generate_report(
     res,
     out_path: str,
@@ -165,6 +189,7 @@ def generate_report(
     bench_metrics: dict | None = None,
     data_kind: str = "synthetic",      # "synthetic" or "real"
     provenance: dict | None = None,
+    baselines=None,                    # optional DataFrame from baselines.compare_baselines
 ) -> str:
     """Write a self-contained HTML report. Returns the path."""
     eq = res.equity
@@ -188,6 +213,9 @@ def generate_report(
     if bench_metrics:
         body.append("<h2>Benchmark-relative</h2>")
         body.append(_dict_table("Vs benchmark", bench_metrics))
+    baseline_html = _baselines_table(baselines)
+    if baseline_html:
+        body.append(baseline_html)
     body += [
         "<h2>Charts</h2>",
         _equity_chart(eq),

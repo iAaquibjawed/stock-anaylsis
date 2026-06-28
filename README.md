@@ -23,7 +23,8 @@ quant_engine/
 │   ├── benchmark.py        # ✅ index-relative metrics (alpha/beta/TE/IR) + RS feature
 │   ├── report.py           # ✅ self-contained HTML research report per experiment
 │   ├── runner.py           # ✅ end-to-end orchestrator (universe -> report)
-│   └── experiments.py      # ✅ experiment ledger + index.html (compare runs)
+│   ├── experiments.py      # ✅ experiment ledger + index.html (compare runs)
+│   └── baselines.py        # ✅ naive-strategy comparison (beat these first)
 ├── reports/                # generated reports, experiments.csv/jsonl, index.html
 ├── cache/                  # auto-created: prices, features, actions, meta (Parquet/JSON)
 └── universe/               # auto-created: point-in-time constituent snapshots
@@ -173,6 +174,16 @@ turnover, validation verdict, and a link to each report. `compare(sort_by=...)`
 ranks them. Synthetic rows are tagged distinctly so only **real** rows read as
 research results. Open `reports/index.html` to browse all runs.
 
+**Baselines** (`baselines.py`) — a strategy that beats the index but loses to a
+coin-flip portfolio hasn't proven anything. This compares the strategy, *after
+costs and on the same next-open timing*, against: buy & hold index, buy & hold
+equal-weight, equal-weight rebalanced, top-N 12-month momentum, and a cloud of
+random portfolios (many sims) — reporting the strategy's percentile vs random.
+The runner runs these by default (`do_baselines=True`) and the report shows the
+table. **If the strategy can't beat these, the strategy needs work — not the
+code.** (In the included sample, plain momentum beats the configured strategy —
+exactly the kind of useful finding this surfaces.)
+
 ## Honest limitations (read these)
 
 1. **`as_of()` is PIT-correct for PRICES only.** yfinance serves *restated*
@@ -204,6 +215,47 @@ complexity ahead of need:
 - **Index-dependent features.** Regime (index vs 200DMA, India VIX, breadth),
   relative strength, and beta-vs-Nifty all need an index series that isn't wired.
   Fundamentals need a point-in-time source. Hooks are ready; data isn't.
+
+## First real-data run — a phased runbook
+
+Don't jump to "is it accurate?". Answer these in order; treat Phases 1–2 as
+correctness, Phase 3 as measurement, Phase 4 as research.
+
+**Phase 1 — Verify the data.** Download the full Nifty 500 list, save it as a
+universe snapshot, cache 10+ years of prices and the benchmark, and check for
+gaps/bad splits.
+
+```python
+import data_engine as de
+nifty500 = [...]                              # from niftyindices.com CSV
+de.save_universe_snapshot(nifty500, "2026-06")
+de.build_cache(nifty500 + ["^CRSLDX"], start="2014-01-01")
+for s in nifty500[:10]:
+    print(s, de.get_meta(s)["warnings"])     # spot-check data-quality flags
+```
+
+**Phase 2 — Verify the engine (correctness, not profit).** Run the whole pipeline
+once and confirm features build, rankings look sane, trades land on the next open,
+and the report/validation complete.
+
+```python
+from runner import RunConfig, run
+from scoring_engine import StrategyConfig
+out = run(RunConfig(name="momentum_smoke", universe_date="2026-06",
+                    benchmark="^CRSLDX", start="2015-01-01",
+                    strat=StrategyConfig(top_n=15)))
+print(out["report"])
+```
+
+**Phase 3 — Measure.** Read the report: CAGR, Sharpe, max DD, win rate, turnover,
+alpha/beta/IR vs benchmark, the validation verdict — and the baseline table.
+Failing here is normal and informative.
+
+**Phase 4 — Research (90% of the work).** Only now ask which factors help or hurt,
+whether momentum/quality/mean-reversion work, and whether weights should change —
+letting the evidence drive each iteration. If a strategy fails, understand *why*
+before tweaking. If it passes, re-run across different periods and regimes to see
+if the edge persists. Every run is logged to `reports/index.html` for comparison.
 
 ## The one thing that still matters most: real data
 
